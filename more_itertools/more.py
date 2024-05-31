@@ -67,6 +67,7 @@ __all__ = [
     'distinct_permutations',
     'distribute',
     'divide',
+    'doublestarmap',
     'duplicates_everseen',
     'duplicates_justseen',
     'classify_unique',
@@ -1625,7 +1626,9 @@ def distribute(n, iterable):
         [[1], [2], [3], [], []]
 
     This function uses :func:`itertools.tee` and may require significant
-    storage. If you need the order items in the smaller iterables to match the
+    storage.
+
+    If you need the order items in the smaller iterables to match the
     original iterable, see :func:`divide`.
 
     """
@@ -1873,9 +1876,9 @@ def divide(n, iterable):
         >>> [list(c) for c in children]
         [[1], [2], [3], [], []]
 
-    This function will exhaust the iterable before returning and may require
-    significant storage. If order is not important, see :func:`distribute`,
-    which does not first pull the iterable into memory.
+    This function will exhaust the iterable before returning.
+    If order is not important, see :func:`distribute`, which does not first
+    pull the iterable into memory.
 
     """
     if n < 1:
@@ -4726,3 +4729,21 @@ def join_mappings(**field_to_map):
             ret[key][field_name] = value
 
     return dict(ret)
+
+
+def doublestarmap(func, iterable):
+    """Apply *func* to every item of *iterable* by dictionary unpacking
+    the item into *func*.
+
+    The difference between :func:`itertools.starmap` and :func:`doublestarmap`
+    parallels the distinction between ``func(*a)`` and ``func(**a)``.
+
+    >>> iterable = [{'a': 1, 'b': 2}, {'a': 40, 'b': 60}]
+    >>> list(doublestarmap(lambda a, b: a + b, iterable))
+    [3, 100]
+
+    ``TypeError`` will be raised if *func*'s signature doesn't match the
+    mapping contained in *iterable* or if *iterable* does not contain mappings.
+    """
+    for item in iterable:
+        yield func(**item)
