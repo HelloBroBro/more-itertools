@@ -473,36 +473,11 @@ class ConsumerTests(TestCase):
 
 
 class DistinctPermutationsTests(TestCase):
-    def test_distinct_permutations(self):
-        """Make sure the output for ``distinct_permutations()`` is the same as
-        set(permutations(it)).
-
-        """
+    def test_basic(self):
         iterable = ['z', 'a', 'a', 'q', 'q', 'q', 'y']
-        test_output = sorted(mi.distinct_permutations(iterable))
-        ref_output = sorted(set(permutations(iterable)))
-        self.assertEqual(test_output, ref_output)
-
-    def test_other_iterables(self):
-        """Make sure ``distinct_permutations()`` accepts a different type of
-        iterables.
-
-        """
-        # a generator
-        iterable = (c for c in ['z', 'a', 'a', 'q', 'q', 'q', 'y'])
-        test_output = sorted(mi.distinct_permutations(iterable))
-        # "reload" it
-        iterable = (c for c in ['z', 'a', 'a', 'q', 'q', 'q', 'y'])
-        ref_output = sorted(set(permutations(iterable)))
-        self.assertEqual(test_output, ref_output)
-
-        # an iterator
-        iterable = iter(['z', 'a', 'a', 'q', 'q', 'q', 'y'])
-        test_output = sorted(mi.distinct_permutations(iterable))
-        # "reload" it
-        iterable = iter(['z', 'a', 'a', 'q', 'q', 'q', 'y'])
-        ref_output = sorted(set(permutations(iterable)))
-        self.assertEqual(test_output, ref_output)
+        actual = list(mi.distinct_permutations(iterable))
+        expected = set(permutations(iterable))
+        self.assertCountEqual(actual, expected)
 
     def test_r(self):
         for iterable, r in (
@@ -524,9 +499,35 @@ class DistinctPermutationsTests(TestCase):
             ([], 4),
         ):
             with self.subTest(iterable=iterable, r=r):
-                expected = sorted(set(permutations(iterable, r)))
-                actual = sorted(mi.distinct_permutations(iter(iterable), r))
-                self.assertEqual(actual, expected)
+                expected = set(permutations(iterable, r))
+                actual = list(mi.distinct_permutations(iter(iterable), r))
+                self.assertCountEqual(actual, expected)
+
+    def test_unsortable(self):
+        iterable = ['1', 2, 2, 3, 3, 3]
+        actual = list(mi.distinct_permutations(iterable))
+        expected = set(permutations(iterable))
+        self.assertCountEqual(actual, expected)
+
+    def test_unsortable_r(self):
+        iterable = ['1', 2, 2, 3, 3, 3]
+        for r in range(len(iterable) + 1):
+            with self.subTest(iterable=iterable, r=r):
+                actual = list(mi.distinct_permutations(iterable, r=r))
+                expected = set(permutations(iterable, r=r))
+                self.assertCountEqual(actual, expected)
+
+    def test_unsorted_equivalent(self):
+        iterable = [1, True, '3']
+        actual = list(mi.distinct_permutations(iterable))
+        expected = set(permutations(iterable))
+        self.assertCountEqual(actual, expected)
+
+    def test_unhashable(self):
+        iterable = ([1], [1], 2)
+        actual = list(mi.distinct_permutations(iterable))
+        expected = list(mi.unique_everseen(permutations(iterable)))
+        self.assertCountEqual(actual, expected)
 
 
 class IlenTests(TestCase):

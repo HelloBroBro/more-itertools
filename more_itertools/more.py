@@ -666,9 +666,9 @@ def distinct_permutations(iterable, r=None):
         >>> sorted(distinct_permutations([1, 0, 1]))
         [(0, 1, 1), (1, 0, 1), (1, 1, 0)]
 
-    Equivalent to ``set(permutations(iterable))``, except duplicates are not
-    generated and thrown away. For larger input sequences this is much more
-    efficient.
+    Equivalent to yielding from ``set(permutations(iterable))``, except
+    duplicates are not generated and thrown away. For larger input sequences
+    this is much more efficient.
 
     Duplicate permutations arise when there are duplicated elements in the
     input iterable. The number of items returned is
@@ -683,6 +683,25 @@ def distinct_permutations(iterable, r=None):
         >>> sorted(distinct_permutations(range(3), r=2))
         [(0, 1), (0, 2), (1, 0), (1, 2), (2, 0), (2, 1)]
 
+    *iterable* need not be sortable, but note that using equal (``x == y``)
+    but non-identical (``id(x) != id(y)``) elements may produce surprising
+    behavior. For example, ``1`` and ``True`` are equal but non-identical:
+
+        >>> list(distinct_permutations([1, True, '3']))  # doctest: +SKIP
+        [
+            (1, True, '3'),
+            (1, '3', True),
+            ('3', 1, True)
+        ]
+        >>> list(distinct_permutations([1, 2, '3']))  # doctest: +SKIP
+        [
+            (1, 2, '3'),
+            (1, '3', 2),
+            (2, 1, '3'),
+            (2, '3', 1),
+            ('3', 1, 2),
+            ('3', 2, 1)
+        ]
     """
 
     # Algorithm: https://w.wiki/Qai
@@ -749,14 +768,44 @@ def distinct_permutations(iterable, r=None):
             i += 1
             head[i:], tail[:] = tail[: r - i], tail[r - i :]
 
-    items = sorted(iterable)
+    items = list(iterable)
+
+    try:
+        items.sort()
+        sortable = True
+    except TypeError:
+        sortable = False
+
+        indices_dict = defaultdict(list)
+
+        for item in items:
+            indices_dict[items.index(item)].append(item)
+
+        indices = [items.index(item) for item in items]
+        indices.sort()
+
+        equivalent_items = {k: cycle(v) for k, v in indices_dict.items()}
+
+        def permuted_items(permuted_indices):
+            return tuple(
+                next(equivalent_items[index]) for index in permuted_indices
+            )
 
     size = len(items)
     if r is None:
         r = size
 
+    # functools.partial(_partial, ... )
+    algorithm = _full if (r == size) else partial(_partial, r=r)
+
     if 0 < r <= size:
-        return _full(items) if (r == size) else _partial(items, r)
+        if sortable:
+            return algorithm(items)
+        else:
+            return (
+                permuted_items(permuted_indices)
+                for permuted_indices in algorithm(indices)
+            )
 
     return iter(() if r else ((),))
 
